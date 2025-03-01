@@ -1,0 +1,74 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - chat_network
+
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - chat_network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${CELERY_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${CELERY_PASSWORD}
+    ports:
+      - "15672:15672"
+    networks:
+      - chat_network
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile.django
+    restart: always
+    environment:
+      DEBUG: ${DEBUG}
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - chat_network
+    ports:
+      - "8000:8000"
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    restart: always
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - chat_network
+    ports:
+      - "8001:8001"
+
+networks:
+  chat_network:
+
+volumes:
+  db_data:
