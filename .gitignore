@@ -130,7 +130,7 @@ celerybeat.pid
 
 # Environments
 .asc
-.env
+aschatapp/.env
 .venv
 asc/
 env/
