@@ -29,7 +29,9 @@ services:
       - chat_network
 
   django:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.django
     restart: always
     environment:
       DEBUG: ${DEBUG}
@@ -49,6 +51,19 @@ services:
       - chat_network
     ports:
       - "8000:8000"
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    restart: always
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - chat_network
+    ports:
+      - "8001:8001"
 
 networks:
   chat_network:
