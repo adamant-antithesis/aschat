@@ -5,7 +5,7 @@ import httpx
 active_connections = {}
 
 
-async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int):
+async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, username: str):
     try:
         logging.info(f"Checking chat {chat_id} for user {user_id}")
 
@@ -30,6 +30,11 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int):
 
         client_host = websocket.client.host
         logging.info(f"Client {client_host} (user_id {user_id}) connected to chat {chat_id}")
+
+        join_message = f"{username} has joined the chat!"
+        for connection in active_connections[chat_id]:
+            if connection != websocket:
+                await connection.send_text(join_message)
 
         try:
             while True:

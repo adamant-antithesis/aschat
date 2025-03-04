@@ -2,7 +2,6 @@ import logging
 
 import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends
-from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer
 
 from ..utils.auth import get_user_from_django
@@ -15,22 +14,6 @@ router = APIRouter()
 django_api_url = "http://django:8000/api/"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
-
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
-
-
-@router.post("/login")
-async def login(user: UserLogin):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(f"{django_api_url}token/", data={"username": user.username, "password": user.password})
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
 
 
 @router.get("/chats")
@@ -70,7 +53,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
         user_data = await get_user_from_django(token)
         logging.info(f"User authenticated, user_id: {user_data['id']}")
 
-        await manage_websocket(websocket, chat_id, user_data['id'])
+        await manage_websocket(websocket, chat_id, user_id=user_data['id'], username=user_data['username'])
     except WebSocketDisconnect:
         logging.info(f"Client disconnected from chat {chat_id}")
         logging.info(f"Client data: {token}")
