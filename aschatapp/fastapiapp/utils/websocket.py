@@ -35,7 +35,8 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                 chat_history = history_response.json()
                 for message in chat_history:
                     message_time = format_time(message['created_at'])
-                    await websocket.send_text(f"{message['user']['username']} [{message_time}]: {message['content']}")
+                    formatted_message = f"{message['user']['username']} [{message_time}]: {message['content']}"
+                    await websocket.send_text(formatted_message)
 
         if chat_id not in active_connections:
             active_connections[chat_id] = []
@@ -71,16 +72,25 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                     )
 
                     if response.status_code == 201:
-                        logger.info(f"Message saved to Django: {response.json()}")
+                        saved_message = response.json()
+                        logger.info(f"Message saved to Django: {saved_message}")
+
+                        message_time = format_time(saved_message.get('created_at', datetime.utcnow().isoformat()))
+
                     else:
                         logger.error(
-                            f"Failed to save message to Django. Status code: {response.status_code}, Response: {response.text}")
+                            f"Failed to save message to Django. Status code: {response.status_code}, Response: {response.text}"
+                        )
+                        message_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-                    message_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    formatted_message = f"{username} [{message_time}]: {message}"
+
+                    await websocket.send_text(formatted_message)
 
                     for connection in active_connections[chat_id]:
                         if connection != websocket:
-                            await connection.send_text(f"{username} [{message_time}]: {message}")
+                            await connection.send_text(formatted_message)
+
             except WebSocketDisconnect:
                 if websocket in active_connections[chat_id]:
                     active_connections[chat_id].remove(websocket)
