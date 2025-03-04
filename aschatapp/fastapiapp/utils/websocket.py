@@ -1,11 +1,16 @@
 import logging
 import httpx
 from fastapi import WebSocket, WebSocketDisconnect, HTTPException
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 active_connections = {}
+
+
+def format_time(timestamp: str) -> str:
+    return datetime.fromisoformat(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
 async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, username: str):
@@ -29,7 +34,8 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
             if history_response.status_code == 200:
                 chat_history = history_response.json()
                 for message in chat_history:
-                    await websocket.send_text(f"{message['user']['username']}: {message['content']}")
+                    message_time = format_time(message['created_at'])
+                    await websocket.send_text(f"{message['user']['username']} [{message_time}]: {message['content']}")
 
         if chat_id not in active_connections:
             active_connections[chat_id] = []
@@ -70,9 +76,11 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                         logger.error(
                             f"Failed to save message to Django. Status code: {response.status_code}, Response: {response.text}")
 
+                    message_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
                     for connection in active_connections[chat_id]:
                         if connection != websocket:
-                            await connection.send_text(f"{username}: {message}")
+                            await connection.send_text(f"{username} [{message_time}]: {message}")
             except WebSocketDisconnect:
                 if websocket in active_connections[chat_id]:
                     active_connections[chat_id].remove(websocket)
