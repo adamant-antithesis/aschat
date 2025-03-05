@@ -26,6 +26,7 @@ services:
       - chat_network
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes
     deploy:
       resources:
         limits:
@@ -112,6 +113,7 @@ services:
     depends_on:
       - rabbitmq
       - django
+      - redis
     networks:
       - chat_network
 
