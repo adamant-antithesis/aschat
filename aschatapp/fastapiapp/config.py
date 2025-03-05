@@ -8,6 +8,5 @@ env = environ.Env()
 
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = env.str("SECRET_KEY")
-ALGORITHM = env.str("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = env.int("ACCESS_TOKEN_EXPIRE_MINUTES")
+CELERY_USERNAME = env.str("CELERY_USERNAME")
+CELERY_PASSWORD = env.str("CELERY_PASSWORD")

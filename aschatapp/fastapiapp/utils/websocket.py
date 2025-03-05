@@ -2,6 +2,7 @@ import logging
 import httpx
 from fastapi import WebSocket, WebSocketDisconnect, HTTPException
 from datetime import datetime
+from .producers import send_message_to_rabbitmq
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,58 +53,34 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
             if connection != websocket:
                 await connection.send_text(join_message)
 
-        async with httpx.AsyncClient() as client:
+        try:
+            while True:
+                message = await websocket.receive_text()
+                logger.info(f"Message received in chat {chat_id}: {message}")
+
+                await send_message_to_rabbitmq(chat_id, user_id, message)
+
+                message_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                formatted_message = f"{username} [{message_time}]: {message}"
+
+                await websocket.send_text(formatted_message)
+                for connection in active_connections[chat_id]:
+                    if connection != websocket:
+                        await connection.send_text(formatted_message)
+
+        except WebSocketDisconnect:
+            if websocket in active_connections[chat_id]:
+                active_connections[chat_id].remove(websocket)
+
+            logger.info(f"WebSocket connection for chat {chat_id} closed.")
+
+            if not active_connections[chat_id]:
+                del active_connections[chat_id]
+                logger.info(f"Chat {chat_id} is now empty, removed from active connections.")
             try:
-                while True:
-                    message = await websocket.receive_text()
-                    logger.info(f"Message received in chat {chat_id}: {message}")
-
-                    message_data = {
-                        "chat": chat_id,
-                        "user_id": user_id,
-                        "content": message
-                    }
-
-                    logger.info(f"Sending message data to Django: {message_data}")
-
-                    response = await client.post(
-                        f"http://django:8000/api/chats/{chat_id}/messages/",
-                        json=message_data
-                    )
-
-                    if response.status_code == 201:
-                        saved_message = response.json()
-                        logger.info(f"Message saved to Django: {saved_message}")
-
-                        message_time = format_time(saved_message.get('created_at', datetime.utcnow().isoformat()))
-
-                    else:
-                        logger.error(
-                            f"Failed to save message to Django. Status code: {response.status_code}, Response: {response.text}"
-                        )
-                        message_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                    formatted_message = f"{username} [{message_time}]: {message}"
-
-                    await websocket.send_text(formatted_message)
-
-                    for connection in active_connections[chat_id]:
-                        if connection != websocket:
-                            await connection.send_text(formatted_message)
-
-            except WebSocketDisconnect:
-                if websocket in active_connections[chat_id]:
-                    active_connections[chat_id].remove(websocket)
-
-                logger.info(f"WebSocket connection for chat {chat_id} closed.")
-
-                if not active_connections[chat_id]:
-                    del active_connections[chat_id]
-                    logger.info(f"Chat {chat_id} is now empty, removed from active connections.")
-                try:
-                    await websocket.close()
-                except RuntimeError:
-                    logger.warning(f"WebSocket already closed for chat {chat_id}")
+                await websocket.close()
+            except RuntimeError:
+                logger.warning(f"WebSocket already closed for chat {chat_id}")
 
     except HTTPException as e:
         logger.error(f"HTTP error during WebSocket connection: {e.detail}")
