@@ -24,6 +24,8 @@ services:
     restart: always
     networks:
       - chat_network
+    volumes:
+      - redis_data:/data
     deploy:
       resources:
         limits:
@@ -39,8 +41,11 @@ services:
       RABBITMQ_DEFAULT_PASS: ${CELERY_PASSWORD}
     ports:
       - "15672:15672"
+      - "5672:5672"
     networks:
       - chat_network
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     deploy:
       resources:
         limits:
@@ -69,6 +74,9 @@ services:
       - rabbitmq
     networks:
       - chat_network
+    volumes:
+      - django_static:/app/static
+      - django_media:/app/media
     ports:
       - "8000:8000"
     deploy:
@@ -88,6 +96,8 @@ services:
       - redis
     networks:
       - chat_network
+    volumes:
+      - fastapi_logs:/app/logs
     ports:
       - "8001:8001"
     deploy:
@@ -102,3 +112,8 @@ networks:
 
 volumes:
   db_data:
+  redis_data:
+  rabbitmq_data:
+  django_static:
+  django_media:
+  fastapi_logs:
