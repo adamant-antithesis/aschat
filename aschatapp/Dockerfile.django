@@ -7,4 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "aschatapp.wsgi:application"]
+RUN apt-get update && apt-get install -y supervisor
+
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+CMD ["/usr/bin/supervisord"]

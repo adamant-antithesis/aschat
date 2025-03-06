@@ -5,9 +5,12 @@ from .views import ChatViewSet, MessageViewSet
 
 router = SimpleRouter()
 router.register(r'chats', ChatViewSet, basename='chat')
-router.register(r'messages', MessageViewSet, basename='message')
+
+chats_router = SimpleRouter()
+chats_router.register(r'(?P<chat_id>[^/.]+)/messages', MessageViewSet, basename='chat-messages')
 
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('chats/', include(chats_router.urls)),
 ]
