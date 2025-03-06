@@ -25,8 +25,6 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
 
         auth_headers = {"Authorization": token}
 
-        logger.info(f"Using headers: {auth_headers}")
-
         async with httpx.AsyncClient() as client:
             response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
 
