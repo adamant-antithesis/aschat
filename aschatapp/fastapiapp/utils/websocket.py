@@ -14,19 +14,23 @@ def format_time(timestamp: str) -> str:
     return datetime.fromisoformat(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
+async def get_chat_details(client: httpx.AsyncClient, chat_id: str, auth_headers: dict):
+    response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
+    return response
+
+
 async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, username: str):
     try:
         logger.info(f"Checking chat {chat_id} for user {user_id}")
 
         token = websocket.headers.get('Authorization')
-
         if token and not token.startswith('Bearer '):
             token = f"Bearer {token}"
 
         auth_headers = {"Authorization": token}
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
+            response = await get_chat_details(client, chat_id, auth_headers)
 
             if response.status_code != 200:
                 logger.error(f"Chat {chat_id} not found or access denied. Status code: {response.status_code}")
@@ -64,6 +68,15 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
             while True:
                 message = await websocket.receive_text()
                 logger.info(f"Message received in chat {chat_id}: {message}")
+
+                async with httpx.AsyncClient() as client:
+                    response = await get_chat_details(client, chat_id, auth_headers)
+
+                if response.status_code != 200:
+                    logger.warning(f"User {user_id} is no longer a member of chat {chat_id}. Disconnecting.")
+                    await websocket.send_text("You are no longer a member of this chat.")
+                    await websocket.close()
+                    return
 
                 await send_message_to_rabbitmq(chat_id, user_id, message)
 
