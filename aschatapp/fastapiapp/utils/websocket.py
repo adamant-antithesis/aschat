@@ -18,26 +18,35 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
     try:
         logger.info(f"Checking chat {chat_id} for user {user_id}")
 
+        token = websocket.headers.get('Authorization')
+
+        if token and not token.startswith('Bearer '):
+            token = f"Bearer {token}"
+
+        auth_headers = {"Authorization": token}
+
+        logger.info(f"Using headers: {auth_headers}")
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"http://django:8000/api/chats/{chat_id}/")
+            response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
 
             if response.status_code != 200:
-                logger.error(f"Chat {chat_id} not found in Django. Status code: {response.status_code}")
+                logger.error(f"Chat {chat_id} not found or access denied. Status code: {response.status_code}")
                 await websocket.accept()
-                await websocket.send_text(f"Error: Chat with ID {chat_id} does not exist.")
+                await websocket.send_text(f"Error: You cannot access chat {chat_id}.")
                 await websocket.close()
                 return
+
+            data = response.json()
+            chat_history = data.get("messages", [])
 
             logger.info(f"Chat {chat_id} found, accepting WebSocket connection")
             await websocket.accept()
 
-            history_response = await client.get(f"http://django:8000/api/chats/{chat_id}/messages/")
-            if history_response.status_code == 200:
-                chat_history = history_response.json()
-                for message in chat_history:
-                    message_time = format_time(message['created_at'])
-                    formatted_message = f"{message['user']['username']} [{message_time}]: {message['content']}"
-                    await websocket.send_text(formatted_message)
+            for message in chat_history:
+                message_time = format_time(message['created_at'])
+                formatted_message = f"{message['user']['username']} [{message_time}]: {message['content']}"
+                await websocket.send_text(formatted_message)
 
         if chat_id not in active_connections:
             active_connections[chat_id] = []
