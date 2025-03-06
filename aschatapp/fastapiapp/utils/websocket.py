@@ -74,6 +74,10 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
 
                 if response.status_code != 200:
                     logger.warning(f"User {user_id} is no longer a member of chat {chat_id}. Disconnecting.")
+
+                    if websocket in active_connections[chat_id]:
+                        active_connections[chat_id].remove(websocket)
+
                     await websocket.send_text("You are no longer a member of this chat.")
                     await websocket.close()
                     return

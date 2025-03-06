@@ -53,7 +53,4 @@ class MessageViewSet(viewsets.ModelViewSet):
         chat_id = self.kwargs['chat_id']
         chat = Chat.objects.get(id=chat_id)
 
-        if not ChatMember.objects.filter(chat=chat, user=self.request.user).exists():
-            raise PermissionDenied("You are not a member of this chat.")
-
         serializer.save(chat=chat, user=self.request.user)
