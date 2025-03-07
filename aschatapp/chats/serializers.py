@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Chat, Message
+from .models import Chat, Message, ChatInvitation
 from django.contrib.auth.models import User
 
 
@@ -22,3 +22,14 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['id', 'chat', 'user', 'user_id', 'content', 'created_at']
+
+
+class ChatInvitationSerializer(serializers.ModelSerializer):
+    inviter = serializers.StringRelatedField()
+    invitee = serializers.StringRelatedField()
+    inviter_id = serializers.IntegerField(source='inviter.id')
+    invitee_id = serializers.IntegerField(source='invitee.id')
+
+    class Meta:
+        model = ChatInvitation
+        fields = ["id", "chat", "inviter", "inviter_id", "invitee", "invitee_id", "created_at", "accepted"]

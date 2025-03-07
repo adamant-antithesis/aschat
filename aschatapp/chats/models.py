@@ -30,3 +30,17 @@ class ChatMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.chat.name}"
+
+
+class ChatInvitation(models.Model):
+    chat = models.ForeignKey(Chat, related_name="invitations", on_delete=models.CASCADE)
+    inviter = models.ForeignKey(User, related_name="sent_invitations", on_delete=models.CASCADE)
+    invitee = models.ForeignKey(User, related_name="received_invitations", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted = models.BooleanField(null=True)
+
+    class Meta:
+        unique_together = ("chat", "invitee")
+
+    def __str__(self):
+        return f"{self.inviter.username} invited {self.invitee.username} to {self.chat.name}"

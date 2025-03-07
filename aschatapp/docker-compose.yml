@@ -76,6 +76,7 @@ services:
     networks:
       - chat_network
     volumes:
+      - .:/app
       - django_static:/app/static
       - django_media:/app/media
     ports:
