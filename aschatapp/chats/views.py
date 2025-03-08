@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import viewsets, status
-from rest_framework.exceptions import PermissionDenied, NotFound
+from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -16,8 +16,37 @@ class ChatViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
+        if Chat.objects.filter(name=serializer.validated_data['name']).exists():
+            raise ValidationError({"detail": "Chat with this name already exists."})
         chat = serializer.save()
-        ChatMember.objects.create(chat=chat, user=self.request.user)
+        ChatMember.objects.create(chat=chat, user=self.request.user, role='admin')
+
+    @action(detail=True, methods=["patch"], url_path="role")
+    def set_role(self, request, pk=None):
+        chat = self.get_object()
+        admin = request.user
+        user_id = request.data.get("user_id")
+        new_role = request.data.get("role")
+
+        if new_role not in ["admin", "moderator", "member"]:
+            return Response({"detail": "Invalid role."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not ChatMember.objects.filter(chat=chat, user=admin, role="admin").exists():
+            raise PermissionDenied("Only chat admins can change roles.")
+
+        try:
+            member = ChatMember.objects.get(chat=chat, user_id=user_id)
+        except ChatMember.DoesNotExist:
+            raise NotFound("User is not a member of this chat.")
+
+        if member.role == "admin" and new_role != "admin":
+            if ChatMember.objects.filter(chat=chat, role="admin").count() == 1:
+                return Response({"detail": "Cannot remove the last admin."}, status=status.HTTP_400_BAD_REQUEST)
+
+        member.role = new_role
+        member.save()
+
+        return Response({"detail": f"User {member.user.username} is now {new_role}."}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"])
     def details(self, request, pk=None):
@@ -120,3 +149,16 @@ class MessageViewSet(viewsets.ModelViewSet):
         chat = Chat.objects.get(id=chat_id)
 
         serializer.save(chat=chat, user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        message = self.get_object()
+        chat = message.chat
+        user = request.user
+
+        is_moderator = ChatMember.objects.filter(chat=chat, user=user, role__in=['admin', 'moderator']).exists()
+
+        if message.user == user or is_moderator:
+            self.perform_destroy(message)
+            return Response({"detail": "Message deleted."}, status=status.HTTP_204_NO_CONTENT)
+
+        raise PermissionDenied("You don't have permission to delete this message.")

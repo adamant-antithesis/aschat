@@ -21,15 +21,22 @@ class Message(models.Model):
 
 
 class ChatMember(models.Model):
+    ROLE_CHOICES = [
+        ('admin', 'Administrator'),
+        ('moderator', 'Moderator'),
+        ('member', 'Member'),
+    ]
+
     chat = models.ForeignKey(Chat, related_name="members", on_delete=models.CASCADE)
     user = models.ForeignKey(User, related_name="chats", on_delete=models.CASCADE)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('chat', 'user')
 
     def __str__(self):
-        return f"{self.user.username} in {self.chat.name}"
+        return f"{self.user.username} ({self.role}) in {self.chat.name}"
 
 
 class ChatInvitation(models.Model):
