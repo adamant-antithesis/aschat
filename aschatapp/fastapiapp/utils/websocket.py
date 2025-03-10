@@ -19,12 +19,11 @@ async def get_chat_details(client: httpx.AsyncClient, chat_id: str, auth_headers
     return response
 
 
-async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, username: str):
+async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, username: str, token: str):
     try:
         logger.info(f"Checking chat {chat_id} for user {user_id}")
 
-        token = websocket.headers.get('Authorization')
-        if token and not token.startswith('Bearer '):
+        if not token.startswith('Bearer '):
             token = f"Bearer {token}"
 
         auth_headers = {"Authorization": token}
