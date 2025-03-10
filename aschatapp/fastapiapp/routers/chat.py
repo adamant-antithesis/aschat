@@ -1,7 +1,7 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 
 from ..utils.auth import get_user_from_django
@@ -40,20 +40,21 @@ async def get_chat(chat_id: str):
 
 @router.websocket("/ws/chat/{chat_id}")
 async def websocket_endpoint(websocket: WebSocket, chat_id: str):
-    token = websocket.headers.get("Authorization")
-
     logging.info(f"Received WebSocket connection request for chat {chat_id} from {websocket.client.host}")
 
-    if token is None:
-        logging.error("No Authorization token provided")
-        await websocket.close(code=4000)
-        return
+    token = websocket.headers.get("Authorization")
+    if not token:
+        token = websocket.query_params.get("token")
+        if not token:
+            logging.error("No Authorization token provided in headers or query params")
+            await websocket.send_text("Error: No token provided")
+            await websocket.close(code=4000)
+            return
 
     try:
         user_data = await get_user_from_django(token)
         logging.info(f"User authenticated, user_id: {user_data['id']}")
-
-        await manage_websocket(websocket, chat_id, user_id=user_data['id'], username=user_data['username'])
+        await manage_websocket(websocket, chat_id, user_id=user_data['id'], username=user_data['username'], token=token)
     except WebSocketDisconnect:
         logging.info(f"Client disconnected from chat {chat_id}")
         logging.info(f"Client data: {token}")
