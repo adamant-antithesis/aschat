@@ -54,6 +54,22 @@ services:
         reservations:
           memory: 256M
 
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    restart: always
+    depends_on:
+      - django
+      - fastapi
+    ports:
+      - "80:80"
+    networks:
+      - chat_network
+    volumes:
+      - django_static:/app/static
+      - django_media:/app/media
+
   django:
     build:
       context: .
