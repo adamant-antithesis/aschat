@@ -19,8 +19,10 @@ async def get_user_from_django(token: str):
                 headers={"Authorization": f"Bearer {token}"}
             )
 
+        logging.info(f"Received response from Django. Status code: {response.status_code}")
+
         if response.status_code != 200:
-            logging.error(f"Failed to retrieve user data. Status code: {response.status_code}")
+            logging.error(f"Failed to retrieve user data. Status code: {response.status_code}, Response: {response.text}")
             raise HTTPException(status_code=401, detail="User not found in Django system")
 
         user_data = response.json()
@@ -33,5 +35,5 @@ async def get_user_from_django(token: str):
         logging.error(f"HTTP error occurred: {str(e)}")
         raise credentials_exception
     except Exception as e:
-        logging.error(f"Unexpected error: {str(e)}")
+        logging.error(f"Unexpected error occurred: {str(e)}")
         raise credentials_exception
