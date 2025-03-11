@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/ChatRoom.css';
 
-function ChatRoom({ token, chatId, onBack }) {
+function ChatRoom({ token, chatId, onBack, username }) {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const [ws, setWs] = useState(null);
@@ -17,7 +17,8 @@ function ChatRoom({ token, chatId, onBack }) {
 
     websocket.onmessage = (event) => {
       console.log('Message received:', event.data);
-      setMessages((prev) => [...prev, event.data]);
+      const data = JSON.parse(event.data);
+      setMessages((prev) => [...prev, data]);
     };
 
     websocket.onerror = (error) => {
@@ -56,7 +57,14 @@ function ChatRoom({ token, chatId, onBack }) {
       <button onClick={onBack} className="back-button">Back to Chat List</button>
       <div className="messages">
         {messages.map((msg, index) => (
-          <p key={index} className="message">{msg}</p>
+          <p
+            key={index}
+            className={`message ${
+              msg.username === username ? 'my-message' : 'other-message'
+            }`}
+          >
+            {msg.username}: {msg.content}
+          </p>
         ))}
         <div ref={messagesEndRef} />
       </div>

@@ -22,7 +22,7 @@ function Login({ onLogin }) {
       }
 
       const data = await response.json();
-      onLogin(data.access);
+      onLogin({ token: data.access, username });
     } catch (err) {
       setError('Invalid credentials');
     }

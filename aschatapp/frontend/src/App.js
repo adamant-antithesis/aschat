@@ -4,11 +4,11 @@ import ChatList from './components/ChatList';
 import ChatRoom from './components/ChatRoom';
 
 function App() {
-  const [token, setToken] = useState(null);
+  const [auth, setAuth] = useState(null);
   const [selectedChat, setSelectedChat] = useState(null);
 
-  const handleLogin = (newToken) => {
-    setToken(newToken);
+  const handleLogin = (authData) => {
+    setAuth(authData);
   };
 
   const handleChatSelect = (chatId) => {
@@ -16,18 +16,27 @@ function App() {
   };
 
   const handleLogout = () => {
-    setToken(null);
+    setAuth(null);
     setSelectedChat(null);
   };
 
   return (
     <div className="app">
-      {!token ? (
+      {!auth ? (
         <Login onLogin={handleLogin} />
       ) : !selectedChat ? (
-        <ChatList token={token} onChatSelect={handleChatSelect} onLogout={handleLogout} />
+        <ChatList
+          token={auth.token}
+          onChatSelect={handleChatSelect}
+          onLogout={handleLogout}
+        />
       ) : (
-        <ChatRoom token={token} chatId={selectedChat} onBack={() => setSelectedChat(null)} />
+        <ChatRoom
+          token={auth.token}
+          chatId={selectedChat}
+          onBack={() => setSelectedChat(null)}
+          username={auth.username}
+        />
       )}
     </div>
   );
