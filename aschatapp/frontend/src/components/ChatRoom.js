@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import '../styles/ChatRoom.css';
 
 function ChatRoom({ token, chatId, onBack }) {
   const [messages, setMessages] = useState([]);
@@ -52,10 +53,10 @@ function ChatRoom({ token, chatId, onBack }) {
   return (
     <div className="chat-room">
       <h2>Chat {chatId}</h2>
-      <button onClick={onBack}>Back to Chat List</button>
+      <button onClick={onBack} className="back-button">Back to Chat List</button>
       <div className="messages">
         {messages.map((msg, index) => (
-          <p key={index}>{msg}</p>
+          <p key={index} className="message">{msg}</p>
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -65,8 +66,10 @@ function ChatRoom({ token, chatId, onBack }) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          className="message-input"
+          placeholder="Type a message..."
         />
-        <button onClick={sendMessage}>Send</button>
+        <button onClick={sendMessage} className="send-button">Send</button>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles/ChatList.css';
 
 function ChatList({ token, onChatSelect, onLogout }) {
   const [chats, setChats] = useState([]);
@@ -28,13 +29,15 @@ function ChatList({ token, onChatSelect, onLogout }) {
   }, [token]);
 
   return (
-    <div className="chat-list">
-      <h2>Available Chats</h2>
-      <button onClick={onLogout}>Logout</button>
-      {error && <p className="error">{error}</p>}
-      <ul>
+    <div className="chat-list-container">
+      <div className="chat-list-header">
+        <h2>Available Chats</h2>
+        <button onClick={onLogout} className="logout-button">Logout</button>
+      </div>
+      {error && <p className="error-message">{error}</p>}
+      <ul className="chat-list">
         {chats.map((chat) => (
-          <li key={chat.id} onClick={() => onChatSelect(chat.id)}>
+          <li key={chat.id} onClick={() => onChatSelect(chat.id)} className="chat-item">
             {chat.name}
           </li>
         ))}
