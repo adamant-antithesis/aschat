@@ -42,6 +42,7 @@
     flex-direction: column;
     scrollbar-width: thin;
     scrollbar-color: #bbbbbb #f9f9f9;
+    transition: all 0.3s ease-in-out;
 }
 
 .messages::-webkit-scrollbar {
@@ -64,6 +65,7 @@
     font-size: 14px;
     padding: 8px 12px;
     border-radius: 10px;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .my-message {
@@ -71,7 +73,6 @@
     color: #0c5460;
     align-self: flex-end;
     border-radius: 10px 10px 0 10px;
-    animation: fadeIn 0.2s ease-in-out;
 }
 
 .other-message {
@@ -79,7 +80,6 @@
     color: #333;
     align-self: flex-start;
     border-radius: 10px 10px 10px 0;
-    animation: fadeIn 0.2s ease-in-out;
 }
 
 .message-row {

@@ -5,7 +5,11 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const [ws, setWs] = useState(null);
+  const [displayedMessages, setDisplayedMessages] = useState([]);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const previousScrollHeightRef = useRef(0);
+  const previousScrollTopRef = useRef(0);
 
   useEffect(() => {
     console.log('Connecting to WebSocket with token:', token);
@@ -52,8 +56,34 @@ function ChatRoom({ token, chatId, onBack, username }) {
   }, [chatId, token]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 30) {
+      setDisplayedMessages(messages.slice(-30));
+    } else {
+      setDisplayedMessages(messages);
+    }
   }, [messages]);
+
+  useEffect(() => {
+    if (previousScrollHeightRef.current !== 0) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight - previousScrollHeightRef.current + previousScrollTopRef.current;
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    previousScrollHeightRef.current = 0;
+    previousScrollTopRef.current = 0;
+  }, [displayedMessages]);
+
+  const handleScroll = () => {
+    if (messagesContainerRef.current.scrollTop === 0 && displayedMessages.length < messages.length) {
+      previousScrollHeightRef.current = messagesContainerRef.current.scrollHeight;
+      previousScrollTopRef.current = messagesContainerRef.current.scrollTop;
+
+      const remainingMessages = messages.length - displayedMessages.length;
+      const newDisplayedMessagesCount = remainingMessages > 30 ? 30 : remainingMessages;
+      setDisplayedMessages(messages.slice(-displayedMessages.length - newDisplayedMessagesCount));
+    }
+  };
 
   const sendMessage = () => {
     if (ws && message.trim()) {
@@ -69,8 +99,8 @@ function ChatRoom({ token, chatId, onBack, username }) {
     <div className="chat-room">
       <h2>Chat {chatId}</h2>
       <button onClick={onBack} className="back-button">Back to Chat List</button>
-      <div className="messages">
-        {messages.map((msg, index) => (
+      <div className="messages" onScroll={handleScroll} ref={messagesContainerRef}>
+        {displayedMessages.map((msg, index) => (
           <div
             key={index}
             className={`message ${
