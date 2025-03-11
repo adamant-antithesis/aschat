@@ -119,6 +119,23 @@ services:
     ports:
       - "8001:8001"
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.react
+    restart: always
+    depends_on:
+      - django
+      - fastapi
+    networks:
+      - chat_network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./frontend/build:/app/build
+    ports:
+      - "3000:3000"
+
   celery:
     build:
       context: .
@@ -144,4 +161,5 @@ volumes:
   rabbitmq_data:
   django_static:
   django_media:
+  react_static:
   fastapi_logs:
