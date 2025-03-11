@@ -12,7 +12,6 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const previousScrollTopRef = useRef(0);
 
   useEffect(() => {
-    console.log('Connecting to WebSocket with token:', token);
     const websocket = new WebSocket(`ws://localhost/ws/chat/${chatId}?token=${token}`);
 
     websocket.onopen = () => {
@@ -20,7 +19,6 @@ function ChatRoom({ token, chatId, onBack, username }) {
     };
 
     websocket.onmessage = (event) => {
-      console.log('Message received:', event.data);
       try {
         const data = JSON.parse(event.data);
         const { username: msgUsername, content } = data;
@@ -87,7 +85,6 @@ function ChatRoom({ token, chatId, onBack, username }) {
 
   const sendMessage = () => {
     if (ws && message.trim()) {
-      console.log('Sending message:', message);
       ws.send(message);
       setMessage('');
     } else {
