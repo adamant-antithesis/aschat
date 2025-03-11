@@ -17,8 +17,22 @@ function ChatRoom({ token, chatId, onBack, username }) {
 
     websocket.onmessage = (event) => {
       console.log('Message received:', event.data);
-      const data = JSON.parse(event.data);
-      setMessages((prev) => [...prev, data]);
+      try {
+        const data = JSON.parse(event.data);
+        const { username: msgUsername, content } = data;
+        const timeStart = content.indexOf('[');
+        const timeEnd = content.indexOf('] ', timeStart);
+        const msgTime = timeStart !== -1 && timeEnd !== -1 ? content.slice(timeStart + 1, timeEnd) : '';
+        const msgContent = timeStart !== -1 && timeEnd !== -1 ? content.slice(timeEnd + 2) : content;
+
+        setMessages((prev) => [
+          ...prev,
+          { username: msgUsername, time: msgTime, content: msgContent },
+        ]);
+      } catch (error) {
+        console.error('Failed to parse message:', error);
+        setMessages((prev) => [...prev, { username: 'Unknown', content: event.data, time: '' }]);
+      }
     };
 
     websocket.onerror = (error) => {
@@ -57,14 +71,27 @@ function ChatRoom({ token, chatId, onBack, username }) {
       <button onClick={onBack} className="back-button">Back to Chat List</button>
       <div className="messages">
         {messages.map((msg, index) => (
-          <p
+          <div
             key={index}
             className={`message ${
               msg.username === username ? 'my-message' : 'other-message'
             }`}
           >
-            {msg.username}: {msg.content}
-          </p>
+            {msg.username === username ? (
+              <div className="my-message-content">
+                <span className="content">{msg.content}</span>
+                <span className="time">{msg.time}</span>
+              </div>
+            ) : (
+              <div className="other-message-content">
+                <span className="username">{msg.username}</span>
+                <div className="content-wrapper">
+                  <span className="content">{msg.content}</span>
+                  <span className="time">{msg.time}</span>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>

@@ -58,19 +58,18 @@
 }
 
 .message {
-    padding: 10px;
     margin: 5px 0;
-    border-radius: 10px;
     max-width: 70%;
     word-wrap: break-word;
     font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 10px;
 }
 
 .my-message {
     background-color: #d1ecf1;
     color: #0c5460;
     align-self: flex-end;
-    text-align: right;
     border-radius: 10px 10px 0 10px;
     animation: fadeIn 0.2s ease-in-out;
 }
@@ -79,9 +78,45 @@
     background-color: #f1f1f1;
     color: #333;
     align-self: flex-start;
-    text-align: left;
     border-radius: 10px 10px 10px 0;
     animation: fadeIn 0.2s ease-in-out;
+}
+
+.message-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.message .content {
+    flex-grow: 1;
+    text-align: left;
+}
+
+.message .time {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.my-message .time {
+    color: #0c5460;
+}
+
+.other-message .time {
+    color: #333;
+}
+
+.other-message-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.other-message .username {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
 }
 
 @keyframes fadeIn {
@@ -95,7 +130,6 @@
     }
 }
 
-/* Область ввода */
 .input-area {
     display: flex;
     align-items: center;
@@ -149,6 +183,14 @@
     .message {
         font-size: 12px;
         max-width: 80%;
+    }
+
+    .message .time {
+        font-size: 10px;
+    }
+
+    .other-message .username {
+        font-size: 12px;
     }
 
     .input-area {
