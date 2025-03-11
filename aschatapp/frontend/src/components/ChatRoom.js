@@ -127,27 +127,27 @@ function ChatRoom({ token, chatId, onBack, username }) {
         {popupVisible && visibleDate && <div className="date-popup">{visibleDate}</div>}
         
         {displayedMessages.map((msg, index) => (
-          <div
-            key={index}
-            className={`message ${msg.username === username ? 'my-message' : 'other-message'}`}
-            data-time={msg.time}
-          >
-            {msg.username === username ? (
-              <div className="my-message-content">
-                <span className="content">{msg.content}</span>
-                <span className="time">{msg.time}</span>
-              </div>
-            ) : (
-              <div className="other-message-content">
-                <span className="username">{msg.username}</span>
-                <div className="content-wrapper">
+            <div
+              key={index}
+              className={`message ${msg.username === username ? 'my-message' : 'other-message'}`}
+              data-time={msg.time}
+            >
+              {msg.username === username ? (
+                <div className="my-message-content">
                   <span className="content">{msg.content}</span>
-                  <span className="time">{msg.time}</span>
+                  <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              ) : (
+                <div className="other-message-content">
+                  <span className="username">{msg.username}</span>
+                  <div className="content-wrapper">
+                    <span className="content">{msg.content}</span>
+                    <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         <div ref={messagesEndRef} />
       </div>
       <div className="input-area">
