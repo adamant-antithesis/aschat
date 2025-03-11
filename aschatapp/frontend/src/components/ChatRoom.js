@@ -6,10 +6,13 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const [message, setMessage] = useState('');
   const [ws, setWs] = useState(null);
   const [displayedMessages, setDisplayedMessages] = useState([]);
+  const [visibleDate, setVisibleDate] = useState('');
+  const [popupVisible, setPopupVisible] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const previousScrollHeightRef = useRef(0);
   const previousScrollTopRef = useRef(0);
+  const lastVisibleDateRef = useRef('');
 
   useEffect(() => {
     const websocket = new WebSocket(`ws://localhost/ws/chat/${chatId}?token=${token}`);
@@ -48,7 +51,6 @@ function ChatRoom({ token, chatId, onBack, username }) {
     setWs(websocket);
 
     return () => {
-      console.log('Cleaning up WebSocket');
       websocket.close();
     };
   }, [chatId, token]);
@@ -81,28 +83,54 @@ function ChatRoom({ token, chatId, onBack, username }) {
       const newDisplayedMessagesCount = remainingMessages > 30 ? 30 : remainingMessages;
       setDisplayedMessages(messages.slice(-displayedMessages.length - newDisplayedMessagesCount));
     }
+
+    const messageElements = Array.from(messagesContainerRef.current.getElementsByClassName('message'));
+    let firstVisibleElement = null;
+
+    for (const element of messageElements) {
+      if (element.getBoundingClientRect().top >= messagesContainerRef.current.getBoundingClientRect().top) {
+        firstVisibleElement = element;
+        break;
+      }
+    }
+
+    if (firstVisibleElement) {
+      const newVisibleDate = new Date(firstVisibleElement.getAttribute('data-time')).toLocaleDateString();
+
+      if (newVisibleDate !== lastVisibleDateRef.current) {
+        setVisibleDate(newVisibleDate);
+        setPopupVisible(true);
+        lastVisibleDateRef.current = newVisibleDate;
+
+        setTimeout(() => {
+          setPopupVisible(false);
+        }, 3000);
+      }
+    }
   };
 
   const sendMessage = () => {
     if (ws && message.trim()) {
       ws.send(message);
       setMessage('');
-    } else {
-      console.log('Cannot send message: WebSocket not ready or message empty');
     }
   };
 
   return (
     <div className="chat-room">
-      <h2>Chat {chatId}</h2>
-      <button onClick={onBack} className="back-button">Back to Chat List</button>
+      <div className="chat-header">
+        <h2 className="chat-title">Chat {chatId}</h2>
+        <button onClick={onBack} className="back-button">Back to Chat List</button>
+      </div>
       <div className="messages" onScroll={handleScroll} ref={messagesContainerRef}>
+
+        {popupVisible && visibleDate && <div className="date-popup">{visibleDate}</div>}
+        
         {displayedMessages.map((msg, index) => (
           <div
             key={index}
-            className={`message ${
-              msg.username === username ? 'my-message' : 'other-message'
-            }`}
+            className={`message ${msg.username === username ? 'my-message' : 'other-message'}`}
+            data-time={msg.time}
           >
             {msg.username === username ? (
               <div className="my-message-content">
