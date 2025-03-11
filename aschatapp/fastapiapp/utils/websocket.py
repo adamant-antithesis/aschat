@@ -1,5 +1,6 @@
 import logging
 import httpx
+import json
 from fastapi import WebSocket, WebSocketDisconnect, HTTPException
 from datetime import datetime
 from .producers import send_message_to_rabbitmq
@@ -46,8 +47,11 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
 
             for message in chat_history:
                 message_time = format_time(message['created_at'])
-                formatted_message = f"{message['user']['username']} [{message_time}]: {message['content']}"
-                await websocket.send_text(formatted_message)
+                formatted_message = {
+                    "username": message['user']['username'],
+                    "content": f"[{message_time}] {message['content']}"
+                }
+                await websocket.send_text(json.dumps(formatted_message))
 
         if chat_id not in active_connections:
             active_connections[chat_id] = []
@@ -58,10 +62,13 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
         client_host = websocket.client.host
         logger.info(f"Client {client_host} (user_id {user_id}) connected to chat {chat_id}")
 
-        join_message = f"{username} has joined the chat!"
+        join_message = {
+            "username": "Connection",
+            "content": f"{username} has joined the chat!"
+        }
         for connection in active_connections[chat_id]:
             if connection != websocket:
-                await connection.send_text(join_message)
+                await connection.send_text(json.dumps(join_message))
 
         try:
             while True:
@@ -84,12 +91,15 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                 await send_message_to_rabbitmq(chat_id, user_id, message)
 
                 message_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                formatted_message = f"{username} [{message_time}]: {message}"
+                formatted_message = {
+                    "username": username,
+                    "content": f"[{message_time}] {message}"
+                }
 
-                await websocket.send_text(formatted_message)
+                await websocket.send_text(json.dumps(formatted_message))
                 for connection in active_connections[chat_id]:
                     if connection != websocket:
-                        await connection.send_text(formatted_message)
+                        await connection.send_text(json.dumps(formatted_message))
 
         except WebSocketDisconnect:
             if websocket in active_connections[chat_id]:

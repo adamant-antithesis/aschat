@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import '../styles/Login.css';
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -21,14 +22,14 @@ function Login({ onLogin }) {
       }
 
       const data = await response.json();
-      onLogin(data.access);
+      onLogin({ token: data.access, username });
     } catch (err) {
       setError('Invalid credentials');
     }
   };
 
   return (
-    <div className="login">
+    <div className="login-container">
       <h2>Login</h2>
       <form onSubmit={handleSubmit}>
         <input
@@ -36,16 +37,18 @@ function Login({ onLogin }) {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          className="login-input"
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="login-input"
         />
-        <button type="submit">Login</button>
+        <button type="submit" className="login-button">Login</button>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error-message">{error}</p>}
     </div>
   );
 }
