@@ -15,7 +15,8 @@ async def get_user_from_django(token: str):
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "http://django:8000/api/user/",
+                # "http://django:8000/api/user/",
+                "https://44a2-188-163-20-93.ngrok-free.app/api/user/",
                 headers={"Authorization": f"Bearer {token}"}
             )
 

@@ -8,7 +8,8 @@ function ChatList({ token, onChatSelect, onLogout }) {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await fetch('http://localhost/api/chats/', {
+//        const response = await fetch('http://localhost/api/chats/', {
+        const response = await fetch('https://44a2-188-163-20-93.ngrok-free.app/api/chats/', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

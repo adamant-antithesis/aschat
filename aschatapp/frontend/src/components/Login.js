@@ -9,7 +9,8 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost/api/token/', {
+//      const response = await fetch('http://localhost/api/token/', {
+        const response = await fetch('https://44a2-188-163-20-93.ngrok-free.app/api/token/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

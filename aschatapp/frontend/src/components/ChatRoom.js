@@ -15,7 +15,8 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const lastVisibleDateRef = useRef('');
 
   useEffect(() => {
-    const websocket = new WebSocket(`ws://localhost/ws/chat/${chatId}?token=${token}`);
+//    const websocket = new WebSocket(`ws://localhost/ws/chat/${chatId}?token=${token}`);
+    const websocket = new WebSocket(`wss://44a2-188-163-20-93.ngrok-free.app//ws/chat/${chatId}?token=${token}`);
 
     websocket.onopen = () => {
       console.log('WebSocket connected successfully');

@@ -151,6 +151,18 @@ services:
     networks:
       - chat_network
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    networks:
+      - chat_network
+    depends_on:
+      - db
 
 networks:
   chat_network:
