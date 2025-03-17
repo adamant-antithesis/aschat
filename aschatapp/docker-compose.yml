@@ -204,7 +204,5 @@ volumes:
     driver: local
   django_media:
     driver: local
-  react_static:
-    driver: local
   fastapi_logs:
     driver: local
