@@ -21,7 +21,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY . .
+COPY manage.py .
+COPY .env .
+COPY accounts/ ./accounts
+COPY chats/ ./chats
+COPY aschatapp/ ./aschatapp
+COPY static/ ./static/
+COPY media/ ./media/
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN python manage.py collectstatic --noinput
 

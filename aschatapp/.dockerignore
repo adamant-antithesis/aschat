@@ -1,4 +1,6 @@
 frontend/
+frontend/node_modules/
+aschatapp/frontend/
 .git/
 .gitignore
 *.pyc

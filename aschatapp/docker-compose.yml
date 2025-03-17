@@ -6,6 +6,9 @@ services:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
+      LANG: C.UTF-8
+      LC_COLLATE: C.UTF-8
+      LC_CTYPE: C.UTF-8
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
@@ -107,7 +110,6 @@ services:
     networks:
       - chat_network
     volumes:
-      - .:/app
       - django_static:/app/static
       - django_media:/app/media
     ports:
