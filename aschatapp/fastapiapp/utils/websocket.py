@@ -16,9 +16,7 @@ def format_time(timestamp: str) -> str:
 
 
 async def get_chat_details(client: httpx.AsyncClient, chat_id: str, auth_headers: dict):
-    # response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
-    response = await client.get(f"https://44a2-188-163-20-93.ngrok-free.app/api/chats/{chat_id}/details/",
-                                headers=auth_headers)
+    response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
     return response
 
 

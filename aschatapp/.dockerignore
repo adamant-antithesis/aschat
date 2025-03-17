@@ -1,0 +1,15 @@
+frontend/
+.git/
+.gitignore
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+asc/
+.asc/
+.venv/
+*.log
+.DS_Store

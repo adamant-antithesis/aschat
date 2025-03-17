@@ -10,8 +10,7 @@ from ..utils.websocket import manage_websocket
 
 router = APIRouter()
 
-django_api_url = "https://44a2-188-163-20-93.ngrok-free.app/api/"
-# django_api_url = "http://django:8000/api/"
+django_api_url = "http://django:8000/api/"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
