@@ -23,6 +23,7 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const previousScrollHeightRef = useRef(0);
   const previousScrollTopRef = useRef(0);
   const lastVisibleDateRef = useRef('');
+  const isCancelledRef = useRef(false);
 
   useEffect(() => {
     const websocket = new WebSocket(`ws://localhost/ws/chat/${chatId}?token=${token}`);
@@ -182,22 +183,25 @@ function ChatRoom({ token, chatId, onBack, username }) {
       };
       
       recorder.onstop = async () => {
-        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          if (ws) {
-            const messageData = {
-              message: '',
-              audio: reader.result
-            };
-            ws.send(JSON.stringify(messageData));
-          }
-        };
+        if (!isCancelledRef.current) {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            if (ws) {
+              const messageData = {
+                message: '',
+                audio: reader.result
+              };
+              ws.send(JSON.stringify(messageData));
+            }
+          };
+        }
       };
       
       recorder.start();
       setIsRecording(true);
+      isCancelledRef.current = false;
       
       setRecordingTime(0);
       recordingTimer.current = setInterval(() => {
@@ -212,11 +216,25 @@ function ChatRoom({ token, chatId, onBack, username }) {
 
   const stopRecording = () => {
     if (mediaRecorder && isRecording) {
+      isCancelledRef.current = false;
       mediaRecorder.stop();
       audioStream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
       clearInterval(recordingTimer.current);
       setRecordingTime(0);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorder && isRecording) {
+      isCancelledRef.current = true;
+      mediaRecorder.stop();
+      audioStream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      clearInterval(recordingTimer.current);
+      setRecordingTime(0);
+      setMediaRecorder(null);
+      setAudioStream(null);
     }
   };
 
@@ -302,22 +320,34 @@ function ChatRoom({ token, chatId, onBack, username }) {
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
           </svg>
         </button>
-        <button
-          className={`voice-button ${isRecording ? 'recording' : ''}`}
-          onClick={isRecording ? stopRecording : startRecording}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {isRecording ? (
-              <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round" />
-            ) : (
-              <>
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" fill="currentColor" stroke="none" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8" strokeLinecap="round" strokeLinejoin="round" />
-              </>
-            )}
-          </svg>
-          {isRecording && <span className="recording-time">{formatTime(recordingTime)}</span>}
-        </button>
+        <div className="voice-controls">
+          <button
+            className={`voice-button ${isRecording ? 'recording' : ''}`}
+            onClick={isRecording ? stopRecording : startRecording}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {isRecording ? (
+                <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round" />
+              ) : (
+                <>
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" fill="currentColor" stroke="none" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8" strokeLinecap="round" strokeLinejoin="round" />
+                </>
+              )}
+            </svg>
+            {isRecording && <span className="recording-time">{formatTime(recordingTime)}</span>}
+          </button>
+          {isRecording && (
+            <button
+              className="cancel-recording-button"
+              onClick={cancelRecording}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+        </div>
         <input
           type="file"
           ref={fileInputRef}
