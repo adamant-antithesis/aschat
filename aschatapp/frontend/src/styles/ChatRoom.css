@@ -121,6 +121,21 @@
     animation: fadeIn 0.3s ease-in-out;
 }
 
+.message .content {
+    flex-grow: 1;
+    text-align: left;
+    padding-right: 65px;
+}
+
+.message .time {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.6rem;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
 .my-message {
     background-color: #d1ecf1;
     color: #0c5460;
@@ -139,19 +154,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.message .content {
-    flex-grow: 1;
-    text-align: left;
-}
-
-.message .time {
-    font-size: 0.6rem;
-    opacity: 0.7;
-    margin-left: 5px;
-    white-space: nowrap;
-    align-self: flex-end
 }
 
 .my-message .time {
