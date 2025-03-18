@@ -124,12 +124,12 @@
 .message .content {
     flex-grow: 1;
     text-align: left;
-    padding-right: 65px;
+    padding-right: 40px;
 }
 
 .message .time {
     position: absolute;
-    bottom: 8px;
+    bottom: 4px;
     right: 8px;
     font-size: 0.6rem;
     opacity: 0.7;
