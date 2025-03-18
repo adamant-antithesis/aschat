@@ -13,12 +13,18 @@ class Chat(models.Model):
 class Message(models.Model):
     chat = models.ForeignKey(Chat, related_name="messages", on_delete=models.CASCADE)
     user = models.ForeignKey(User, related_name="messages", on_delete=models.CASCADE)
-    content = models.TextField()
+    content = models.TextField(blank=True)
     image = models.ImageField(upload_to='chat_images/', null=True, blank=True)
+    audio = models.FileField(upload_to='chat_audio/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username}: {self.content[:50]}"
+        if self.content:
+            return f"{self.user.username}: {self.content[:50]}"
+        elif self.audio:
+            return f"{self.user.username}: [Voice message]"
+        else:
+            return f"{self.user.username}: [Image]"
 
 
 class ChatMember(models.Model):

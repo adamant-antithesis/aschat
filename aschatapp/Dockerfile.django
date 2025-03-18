@@ -31,6 +31,7 @@ COPY media/ ./media/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN mkdir -p /app/media/chat_images && \
+    mkdir -p /app/media/chat_audio && \
     chmod -R 777 /app/media
 
 RUN python manage.py collectstatic --noinput
