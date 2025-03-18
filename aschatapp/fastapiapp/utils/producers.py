@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def send_message_to_rabbitmq(chat_id: str, user_id: int, content: str, image_data: str = None):
+async def send_message_to_rabbitmq(chat_id: str, user_id: int, content: str, image_data: str = None, audio_data: str = None):
 
     connection = await aio_pika.connect_robust(f"amqp://{CELERY_USERNAME}:{CELERY_PASSWORD}@rabbitmq/")
     async with connection:
@@ -21,7 +21,8 @@ async def send_message_to_rabbitmq(chat_id: str, user_id: int, content: str, ima
             "user_id": user_id,
             "content": content,
             "timestamp": datetime.utcnow().isoformat(),
-            "image_data": image_data
+            "image_data": image_data,
+            "audio_data": audio_data
         }
 
         await channel.default_exchange.publish(

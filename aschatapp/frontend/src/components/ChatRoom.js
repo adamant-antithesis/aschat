@@ -12,6 +12,11 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const [imagePreview, setImagePreview] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioStream, setAudioStream] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingTimer = useRef(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -29,7 +34,7 @@ function ChatRoom({ token, chatId, onBack, username }) {
     websocket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        const { username: msgUsername, content, image } = data;
+        const { username: msgUsername, content, image, audio } = data;
         const timeStart = content.indexOf('[');
         const timeEnd = content.indexOf('] ', timeStart);
         const msgTime = timeStart !== -1 && timeEnd !== -1 ? content.slice(timeStart + 1, timeEnd) : '';
@@ -41,12 +46,13 @@ function ChatRoom({ token, chatId, onBack, username }) {
             username: msgUsername, 
             time: msgTime, 
             content: msgContent,
-            image: image 
+            image: image,
+            audio: audio
           },
         ]);
       } catch (error) {
         console.error('Failed to parse message:', error);
-        setMessages((prev) => [...prev, { username: 'Unknown', content: event.data, time: '', image: null }]);
+        setMessages((prev) => [...prev, { username: 'Unknown', content: event.data, time: '', image: null, audio: null }]);
       }
     };
 
@@ -145,8 +151,8 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const sendMessage = () => {
     if (ws && (message.trim() || selectedImage)) {
       const messageData = {
-        image: imagePreview,
         message: message.trim(),
+        image: imagePreview
       };
       console.log('Отправка сообщения:', messageData);
       ws.send(JSON.stringify(messageData));
@@ -158,6 +164,66 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const openImageModal = (imageUrl) => {
     setModalImage(imageUrl);
     setShowImageModal(true);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setAudioStream(stream);
+      
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          if (ws) {
+            const messageData = {
+              message: '',
+              audio: reader.result
+            };
+            ws.send(JSON.stringify(messageData));
+          }
+        };
+      };
+      
+      recorder.start();
+      setIsRecording(true);
+      
+      setRecordingTime(0);
+      recordingTimer.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      alert('Не удалось получить доступ к микрофону');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      audioStream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      clearInterval(recordingTimer.current);
+      setRecordingTime(0);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -177,6 +243,7 @@ function ChatRoom({ token, chatId, onBack, username }) {
           >
             {msg.username === username ? (
               <div className="my-message-content">
+                <span className="content">{msg.content}</span>
                 {msg.image && (
                   <img
                     src={msg.image}
@@ -185,13 +252,18 @@ function ChatRoom({ token, chatId, onBack, username }) {
                     onClick={() => openImageModal(msg.image)}
                   />
                 )}
-                <span className="content">{msg.content}</span>
+                {msg.audio && (
+                  <div className="audio-message">
+                    <audio controls src={msg.audio} className="audio-player" />
+                  </div>
+                )}
                 <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
               </div>
             ) : (
               <div className="other-message-content">
                 <span className="username">{msg.username}</span>
                 <div className="content-wrapper">
+                  <span className="content">{msg.content}</span>
                   {msg.image && (
                     <img
                       src={msg.image}
@@ -200,7 +272,11 @@ function ChatRoom({ token, chatId, onBack, username }) {
                       onClick={() => openImageModal(msg.image)}
                     />
                   )}
-                  <span className="content">{msg.content}</span>
+                  {msg.audio && (
+                    <div className="audio-message">
+                      <audio controls src={msg.audio} className="audio-player" />
+                    </div>
+                  )}
                   <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
                 </div>
               </div>
@@ -226,6 +302,22 @@ function ChatRoom({ token, chatId, onBack, username }) {
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
           </svg>
         </button>
+        <button
+          className={`voice-button ${isRecording ? 'recording' : ''}`}
+          onClick={isRecording ? stopRecording : startRecording}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {isRecording ? (
+              <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round" />
+            ) : (
+              <>
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" fill="currentColor" stroke="none" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8" strokeLinecap="round" strokeLinejoin="round" />
+              </>
+            )}
+          </svg>
+          {isRecording && <span className="recording-time">{formatTime(recordingTime)}</span>}
+        </button>
         <input
           type="file"
           ref={fileInputRef}
@@ -237,11 +329,12 @@ function ChatRoom({ token, chatId, onBack, username }) {
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          onKeyPress={(e) => e.key === 'Enter' && !isRecording && sendMessage()}
           className="message-input"
           placeholder="Введите сообщение..."
+          disabled={isRecording}
         />
-        <button onClick={sendMessage} className="send-button">Отправить</button>
+        <button onClick={sendMessage} className="send-button" disabled={isRecording}>Отправить</button>
       </div>
 
       {showImageModal && (

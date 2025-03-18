@@ -50,7 +50,8 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                 formatted_message = {
                     "username": message['user']['username'],
                     "content": f"[{message_time}] {message['content']}",
-                    "image": message.get('image')
+                    "image": message.get('image'),
+                    "audio": message.get('audio')
                 }
                 logger.info(f"Processing history message: {formatted_message}")
                 await websocket.send_text(json.dumps(formatted_message))
@@ -77,6 +78,7 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                     data = await websocket.receive_json()
                     message = data.get('message', '')
                     image_data = data.get('image', None)
+                    audio_data = data.get('audio', None)
                     
                     logger.info(f"Message received in chat {chat_id}: {message}")
 
@@ -93,13 +95,14 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
                         await websocket.close()
                         return
 
-                    await send_message_to_rabbitmq(chat_id, user_id, message, image_data)
+                    await send_message_to_rabbitmq(chat_id, user_id, message, image_data, audio_data)
 
                     message_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
                     formatted_message = {
                         "username": username,
                         "content": f"[{message_time}] {message}",
-                        "image": image_data
+                        "image": image_data,
+                        "audio": audio_data
                     }
 
                     logger.info(f"Sending formatted message: {formatted_message}")

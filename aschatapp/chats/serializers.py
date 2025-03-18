@@ -22,10 +22,11 @@ class MessageSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='user')
     image = serializers.SerializerMethodField()
+    audio = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['id', 'chat', 'user', 'user_id', 'image', 'content', 'created_at']
+        fields = ['id', 'chat', 'user', 'user_id', 'image', 'audio', 'content', 'created_at']
 
     def get_image(self, obj):
         if obj.image:
@@ -33,6 +34,15 @@ class MessageSerializer(serializers.ModelSerializer):
                 return f"http://localhost{obj.image.url}"
             except Exception as e:
                 logger.error(f"Error getting image URL for message {obj.id}: {str(e)}")
+                return None
+        return None
+
+    def get_audio(self, obj):
+        if obj.audio:
+            try:
+                return f"http://localhost{obj.audio.url}"
+            except Exception as e:
+                logger.error(f"Error getting audio URL for message {obj.id}: {str(e)}")
                 return None
         return None
 
