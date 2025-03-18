@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import Chat, Message, ChatInvitation
 from django.contrib.auth.models import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -18,10 +21,20 @@ class ChatSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='user')
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['id', 'chat', 'user', 'user_id', 'content', 'created_at']
+        fields = ['id', 'chat', 'user', 'user_id', 'image', 'content', 'created_at']
+
+    def get_image(self, obj):
+        if obj.image:
+            try:
+                return f"http://localhost{obj.image.url}"
+            except Exception as e:
+                logger.error(f"Error getting image URL for message {obj.id}: {str(e)}")
+                return None
+        return None
 
 
 class ChatInvitationSerializer(serializers.ModelSerializer):
