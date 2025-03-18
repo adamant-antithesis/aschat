@@ -5,9 +5,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from rest_framework.parsers import MultiPartParser, FormParser
+import logging
 
 from .models import Chat, Message, ChatMember, ChatInvitation
 from .serializers import ChatSerializer, MessageSerializer, ChatInvitationSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class ChatViewSet(viewsets.ModelViewSet):
@@ -58,7 +62,17 @@ class ChatViewSet(viewsets.ModelViewSet):
 
         chat_serializer = self.get_serializer(chat)
         messages = Message.objects.filter(chat=chat).order_by("created_at")
-        message_serializer = MessageSerializer(messages, many=True)
+        message_serializer = MessageSerializer(
+            messages,
+            many=True,
+            context={'request': request}
+        )
+        
+        logger.info(f"Returning {len(messages)} messages for chat {pk}")
+        for msg in message_serializer.data:
+            if msg.get('image'):
+                logger.info(f"Message {msg['id']} has image: {msg['image']}")
+                logger.info(f"Full message data: {msg}")
 
         return Response({
             "chat": chat_serializer.data,
@@ -134,6 +148,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
         chat_id = self.kwargs['chat_id']
@@ -147,8 +162,12 @@ class MessageViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         chat_id = self.kwargs['chat_id']
         chat = Chat.objects.get(id=chat_id)
-
-        serializer.save(chat=chat, user=self.request.user)
+        
+        image = self.request.FILES.get('image')
+        if image:
+            serializer.save(chat=chat, user=self.request.user, image=image)
+        else:
+            serializer.save(chat=chat, user=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
         message = self.get_object()
@@ -158,6 +177,8 @@ class MessageViewSet(viewsets.ModelViewSet):
         is_moderator = ChatMember.objects.filter(chat=chat, user=user, role__in=['admin', 'moderator']).exists()
 
         if message.user == user or is_moderator:
+            if message.image:
+                message.image.delete()
             self.perform_destroy(message)
             return Response({"detail": "Message deleted."}, status=status.HTTP_204_NO_CONTENT)
 

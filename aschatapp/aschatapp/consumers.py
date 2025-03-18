@@ -26,10 +26,11 @@ async def callback(message: aio_pika.IncomingMessage):
         user_id = message_data['user_id']
         content = message_data['content']
         timestamp = message_data['timestamp']
+        image_data = message_data.get('image_data')
 
         result = app.send_task(
             "chats.tasks.save_message",
-            args=[chat_id, user_id, content, timestamp]
+            args=[chat_id, user_id, content, timestamp, image_data]
         )
 
         logger.info(f"Message saving result: {result.result}")

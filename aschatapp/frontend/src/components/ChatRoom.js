@@ -8,6 +8,11 @@ function ChatRoom({ token, chatId, onBack, username }) {
   const [displayedMessages, setDisplayedMessages] = useState([]);
   const [visibleDate, setVisibleDate] = useState('');
   const [popupVisible, setPopupVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [modalImage, setModalImage] = useState('');
+  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const previousScrollHeightRef = useRef(0);
@@ -24,7 +29,7 @@ function ChatRoom({ token, chatId, onBack, username }) {
     websocket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        const { username: msgUsername, content } = data;
+        const { username: msgUsername, content, image } = data;
         const timeStart = content.indexOf('[');
         const timeEnd = content.indexOf('] ', timeStart);
         const msgTime = timeStart !== -1 && timeEnd !== -1 ? content.slice(timeStart + 1, timeEnd) : '';
@@ -32,11 +37,16 @@ function ChatRoom({ token, chatId, onBack, username }) {
 
         setMessages((prev) => [
           ...prev,
-          { username: msgUsername, time: msgTime, content: msgContent },
+          { 
+            username: msgUsername, 
+            time: msgTime, 
+            content: msgContent,
+            image: image 
+          },
         ]);
       } catch (error) {
         console.error('Failed to parse message:', error);
-        setMessages((prev) => [...prev, { username: 'Unknown', content: event.data, time: '' }]);
+        setMessages((prev) => [...prev, { username: 'Unknown', content: event.data, time: '', image: null }]);
       }
     };
 
@@ -109,11 +119,45 @@ function ChatRoom({ token, chatId, onBack, username }) {
     }
   };
 
-  const sendMessage = () => {
-    if (ws && message.trim()) {
-      ws.send(message);
-      setMessage('');
+  const handleImageSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        alert('Файл слишком большой. Максимальный размер: 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(file);
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+    setImagePreview('');
+    fileInputRef.current.value = '';
+  };
+
+  const sendMessage = () => {
+    if (ws && (message.trim() || selectedImage)) {
+      const messageData = {
+        image: imagePreview,
+        message: message.trim(),
+      };
+      console.log('Отправка сообщения:', messageData);
+      ws.send(JSON.stringify(messageData));
+      setMessage('');
+      removeSelectedImage();
+    }
+  };
+
+  const openImageModal = (imageUrl) => {
+    setModalImage(imageUrl);
+    setShowImageModal(true);
   };
 
   return (
@@ -123,44 +167,88 @@ function ChatRoom({ token, chatId, onBack, username }) {
         <button onClick={onBack} className="back-button">Back to Chat List</button>
       </div>
       <div className="messages" onScroll={handleScroll} ref={messagesContainerRef}>
-
         {popupVisible && visibleDate && <div className="date-popup">{visibleDate}</div>}
 
         {displayedMessages.map((msg, index) => (
-            <div
-              key={index}
-              className={`message ${msg.username === username ? 'my-message' : 'other-message'}`}
-              data-time={msg.time}
-            >
-              {msg.username === username ? (
-                <div className="my-message-content">
+          <div
+            key={index}
+            className={`message ${msg.username === username ? 'my-message' : 'other-message'}`}
+            data-time={msg.time}
+          >
+            {msg.username === username ? (
+              <div className="my-message-content">
+                {msg.image && (
+                  <img
+                    src={msg.image}
+                    alt="Прикрепленное изображение"
+                    className="message-image"
+                    onClick={() => openImageModal(msg.image)}
+                  />
+                )}
+                <span className="content">{msg.content}</span>
+                <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
+              </div>
+            ) : (
+              <div className="other-message-content">
+                <span className="username">{msg.username}</span>
+                <div className="content-wrapper">
+                  {msg.image && (
+                    <img
+                      src={msg.image}
+                      alt="Прикрепленное изображение"
+                      className="message-image"
+                      onClick={() => openImageModal(msg.image)}
+                    />
+                  )}
                   <span className="content">{msg.content}</span>
                   <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
                 </div>
-              ) : (
-                <div className="other-message-content">
-                  <span className="username">{msg.username}</span>
-                  <div className="content-wrapper">
-                    <span className="content">{msg.content}</span>
-                    <span className="time" data-time={msg.time}>{msg.time.split(' ')[1]}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+              </div>
+            )}
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {imagePreview && (
+        <div className="attachment-preview">
+          <img src={imagePreview} alt="Предпросмотр" />
+          <button onClick={removeSelectedImage}>×</button>
+        </div>
+      )}
+
       <div className="input-area">
+        <button
+          className="attachment-button"
+          onClick={() => fileInputRef.current.click()}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+          </svg>
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageSelect}
+          accept="image/*"
+          style={{ display: 'none' }}
+        />
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           className="message-input"
-          placeholder="Type a message..."
+          placeholder="Введите сообщение..."
         />
-        <button onClick={sendMessage} className="send-button">Send</button>
+        <button onClick={sendMessage} className="send-button">Отправить</button>
       </div>
+
+      {showImageModal && (
+        <div className="image-modal" onClick={() => setShowImageModal(false)}>
+          <img src={modalImage} alt="Увеличенное изображение" />
+        </div>
+      )}
     </div>
   );
 }

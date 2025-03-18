@@ -6,6 +6,9 @@ services:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
+      LANG: C.UTF-8
+      LC_COLLATE: C.UTF-8
+      LC_CTYPE: C.UTF-8
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
@@ -100,6 +103,7 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      MEDIA_ROOT: /app/media
     depends_on:
       - db
       - redis
@@ -107,7 +111,6 @@ services:
     networks:
       - chat_network
     volumes:
-      - .:/app
       - django_static:/app/static
       - django_media:/app/media
     ports:
@@ -154,12 +157,15 @@ services:
     restart: unless-stopped
     environment:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      MEDIA_ROOT: /app/media
     depends_on:
       - rabbitmq
       - django
       - redis
     networks:
       - chat_network
+    volumes:
+      - django_media:/app/media
     deploy:
       resources:
         limits:
@@ -204,5 +210,9 @@ volumes:
     driver: local
   django_media:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./media
   fastapi_logs:
     driver: local
