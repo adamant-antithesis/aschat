@@ -406,6 +406,13 @@
     margin: 0;
     min-width: 28px;
     height: 30px;
+    transition: all 0.2s ease-in-out;
+}
+
+.audio-player::-webkit-media-controls-play-button:hover {
+    background-color: #1278e6;
+    transform: scale(0.9);
+    box-shadow: 0 0 8px rgba(151, 195, 243, 0.4);
 }
 
 .audio-player::-webkit-media-controls-current-time-display,
