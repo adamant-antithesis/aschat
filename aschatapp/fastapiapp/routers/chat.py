@@ -42,7 +42,10 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str):
     logging.info(f"Received WebSocket connection request for chat {chat_id} from {websocket.client.host}")
 
     token = websocket.headers.get("Authorization")
-    if not token:
+    if token:
+        if token.lower().startswith("bearer "):
+            token = token.split(" ", 1)[1]
+    else:
         token = websocket.query_params.get("token")
         if not token:
             logging.error("No Authorization token provided in headers or query params")
