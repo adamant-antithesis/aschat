@@ -61,7 +61,15 @@ class ChatViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You are not a member of this chat.")
 
         chat_serializer = self.get_serializer(chat)
-        messages = Message.objects.filter(chat=chat).order_by("created_at")
+
+        limit = int(request.query_params.get("limit", 50))
+        offset = int(request.query_params.get("offset", 0))
+
+        messages = (
+            Message.objects.filter(chat=chat)
+            .order_by("created_at")
+            [offset : offset + limit]
+        )
         message_serializer = MessageSerializer(
             messages,
             many=True,

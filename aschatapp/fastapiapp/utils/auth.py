@@ -1,39 +1,31 @@
-import logging
-import httpx
+import jwt
 from fastapi import HTTPException
 
+from ..config import SECRET_KEY
+from .logging_config import get_logger
 
-async def get_user_from_django(token: str):
+logger = get_logger(__name__)
+
+
+async def get_user_from_token(token: str) -> dict:
+    """Decode JWT token locally and return user information."""
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    logging.info(f"Decoding token...")
+    logger.info("Decoding token...")
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "http://django:8000/api/user/",
-                headers={"Authorization": f"Bearer {token}"}
-            )
-
-        logging.info(f"Received response from Django. Status code: {response.status_code}")
-
-        if response.status_code != 200:
-            logging.error(f"Failed to retrieve user data. Status code: {response.status_code}, Response: {response.text}")
-            raise HTTPException(status_code=401, detail="User not found in Django system")
-
-        user_data = response.json()
-
-        logging.info(f"User data retrieved: {user_data}")
-
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("user_id") or payload.get("id")
+        if not user_id:
+            raise credentials_exception
+        username = payload.get("username")
+        user_data = {"id": user_id, "username": username}
+        logger.info(f"Token decoded, user_id: {user_id}")
         return user_data
-
-    except httpx.HTTPStatusError as e:
-        logging.error(f"HTTP error occurred: {str(e)}")
-        raise credentials_exception
-    except Exception as e:
-        logging.error(f"Unexpected error occurred: {str(e)}")
+    except jwt.PyJWTError as exc:
+        logger.error(f"JWT decode failed: {exc}")
         raise credentials_exception

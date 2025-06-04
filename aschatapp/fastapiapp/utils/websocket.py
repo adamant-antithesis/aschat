@@ -1,12 +1,13 @@
-import logging
 import httpx
 import json
 from fastapi import WebSocket, WebSocketDisconnect, HTTPException
 from datetime import datetime
-from .producers import send_message_to_rabbitmq
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from ..config import DJANGO_API_URL
+from .producers import send_message_to_rabbitmq
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 active_connections = {}
 
@@ -15,8 +16,14 @@ def format_time(timestamp: str) -> str:
     return datetime.fromisoformat(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
-async def get_chat_details(client: httpx.AsyncClient, chat_id: str, auth_headers: dict):
-    response = await client.get(f"http://django:8000/api/chats/{chat_id}/details/", headers=auth_headers)
+async def get_chat_details(
+    client: httpx.AsyncClient, chat_id: str, auth_headers: dict
+):
+    """Fetch chat details from the Django service."""
+    response = await client.get(
+        f"{DJANGO_API_URL}chats/{chat_id}/details/",
+        headers=auth_headers,
+    )
     return response
 
 
@@ -76,24 +83,11 @@ async def manage_websocket(websocket: WebSocket, chat_id: str, user_id: int, use
             try:
                 while True:
                     data = await websocket.receive_json()
-                    message = data.get('message', '')
-                    image_data = data.get('image', None)
-                    audio_data = data.get('audio', None)
-                    
+                    message = data.get("message", "")
+                    image_data = data.get("image")
+                    audio_data = data.get("audio")
+
                     logger.info(f"Message received in chat {chat_id}: {message}")
-
-                    async with httpx.AsyncClient() as client:
-                        response = await get_chat_details(client, chat_id, auth_headers)
-
-                    if response.status_code != 200:
-                        logger.warning(f"User {user_id} is no longer a member of chat {chat_id}. Disconnecting.")
-
-                        if websocket in active_connections[chat_id]:
-                            active_connections[chat_id].remove(websocket)
-
-                        await websocket.send_text("You are no longer a member of this chat.")
-                        await websocket.close()
-                        return
 
                     await send_message_to_rabbitmq(chat_id, user_id, message, image_data, audio_data)
 
